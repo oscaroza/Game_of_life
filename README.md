@@ -6,7 +6,7 @@ instruction pour le repo GIT:
 
 # importer le repo sur ton ordi : 
 
-git clone https://github.com/game_of_life.git
+git clone https://github.com/oscaroza/Game_of_life.git
 
 # Avant de coder, importer les modifications des autres : 
 
