@@ -18,4 +18,10 @@ git add .
 git commit -m "message expliquant la modification"
 git push
 ```
-test test test 
+
+
+# Autre methode beacoup plus simple : 
+
+cliquer sur l'onglet VSCode donné en capture d'ecran. 
+ecrire la decription du changement ds la zone de texte
+Et ensuite sur le bouton commit ya une fleche tu cliques dessus et tu vas sur commit and push. et attendre !
