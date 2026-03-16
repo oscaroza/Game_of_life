@@ -28,21 +28,23 @@ font_title = pygame.font.SysFont("Times New Roman", 40)
 font_button = pygame.font.SysFont("Times New Roman", 30)
 
 # Buttons for controlling the game
-BUTTON_WIDTH = 300
+BUTTON_WIDTH = 250
 BUTTON_HEIGHT = 50
 BUTTON_Y = HEIGHT - 80
 
 start_button = pygame.Rect(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT)
 pause_button = pygame.Rect(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT)
 reset_button = pygame.Rect(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT)
-spacing = 40
+slider_button = pygame.Rect(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT) 
+spacing = 35
 
-total_width = BUTTON_WIDTH * 3 + spacing * 2
-start_button.x = (WIDTH - total_width) // 2
+total_width = BUTTON_WIDTH * 4 + spacing * 3
+start_button.x = (WIDTH - total_width) // 3
 pause_button.x = start_button.x + BUTTON_WIDTH + spacing
 reset_button.x = pause_button.x + BUTTON_WIDTH + spacing
+slider_button.x = reset_button.x + BUTTON_WIDTH + spacing
 
-start_button.y = pause_button.y = reset_button.y = BUTTON_Y
+start_button.y = pause_button.y = reset_button.y = slider_button.y = BUTTON_Y
 
 #title 
 def draw_title():
@@ -72,6 +74,16 @@ def buttons_reset():
     text_rect = text.get_rect(center=(reset_button.x + BUTTON_WIDTH // 2, reset_button.y + BUTTON_HEIGHT // 2))
     screen.blit(text, text_rect)
 
+#slider 
+slider_handle_radius = 12
+def draw_slider():
+    pygame.draw.rect(screen, (180, 180, 180), slider_button)
+
+    pygame.draw.circle(screen,
+                       (255, 255, 255),
+                       (slider_button.x + BUTTON_WIDTH // 2, slider_button.y + BUTTON_HEIGHT // 2),slider_handle_radius)
+
+pygame.mouse.set_cursor(*pygame.cursors.broken_x)
 running = True
 clock = pygame.time.Clock()
 
@@ -88,5 +100,6 @@ while running:
     buttons_start()
     buttons_pause()
     buttons_reset()
+    draw_slider()
 
     pygame.display.flip()
