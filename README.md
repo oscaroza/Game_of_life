@@ -22,12 +22,6 @@ git push
 
 # Autre methode beacoup plus simple : 
 
-taper la commande ds le terminal : 
-```
-cd Game_of_life
-git pull
-```
-
 cliquer sur l'onglet VSCode donné en capture d'ecran. 
 ecrire la decription du changement ds la zone de texte
 Et ensuite sur le bouton commit ya une fleche tu cliques dessus et tu vas sur commit and sync. et attendre !
