@@ -25,10 +25,9 @@ LEFT_PANEL_WIDTH = GRID_X - LEFT_PANEL_X - 20
 BG_UI = (30, 30, 30)
 TITLE_COLOR = (50, 50, 50)
 PANEL_TEXT = (235, 235, 235)
-BTN_START = (0, 140, 90)
-BTN_PAUSE = (180, 110, 0)
-BTN_RESET = (180, 40, 40)
-BTN_BORDER = (230, 230, 230)
+BTN_START = (200, 0, 200)
+BTN_PAUSE = (100, 0, 200)
+BTN_RESET = (200, 0, 0)
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game of Life")
@@ -130,14 +129,7 @@ PULSAR_MAP = [
 ]
 
 
-def make_empty_grid(num_rows, num_cols):
-    game_grid = []
-    for _row in range(num_rows):
-        game_grid.append([0] * num_cols)
-    return game_grid
-
-
-game_grid = make_empty_grid(ROWS, COLS)
+gol.reset_module_grid()
 paused = True
 user_mode = False
 generation_timer = 0.0
@@ -157,12 +149,9 @@ def draw_title():
 
 
 def draw_buttons():
-    pygame.draw.rect(screen, BTN_START, start_button, border_radius=8)
-    pygame.draw.rect(screen, BTN_PAUSE, pause_button, border_radius=8)
-    pygame.draw.rect(screen, BTN_RESET, reset_button, border_radius=8)
-
-    for button in (start_button, pause_button, reset_button):
-        pygame.draw.rect(screen, BTN_BORDER, button, width=2, border_radius=8)
+    pygame.draw.rect(screen, BTN_START, start_button)
+    pygame.draw.rect(screen, BTN_PAUSE, pause_button)
+    pygame.draw.rect(screen, BTN_RESET, reset_button)
 
     start_text = font_button.render("PLAY", True, (255, 255, 255))
     pause_text = font_button.render("PAUSE", True, (255, 255, 255))
@@ -196,29 +185,15 @@ def draw_status():
     if user_mode:
         state_text = "USER"
 
-    live_cells = gol.count_live_cells(game_grid, ROWS, COLS)
+    live_cells = gol.count_live_cells(gol.grid, ROWS, COLS)
     status = f"State: {state_text}  |  Live cells: {live_cells}"
     surface = font_status.render(status, True, (235, 235, 235))
     screen.blit(surface, (LEFT_PANEL_X, GRID_Y + 270))
 
 
 def draw_grid():
+    gol.draw_grid(screen, gol.grid, ROWS, COLS, CELL_SIZE, GRID_X, GRID_Y)
     background_rect = pygame.Rect(GRID_X, GRID_Y, GRID_SIZE, GRID_SIZE)
-    pygame.draw.rect(screen, gol.BG_COLOR, background_rect)
-
-    for row in range(ROWS):
-        for col in range(COLS):
-            if game_grid[row][col] == 1:
-                color = gol.BLACK
-            else:
-                color = gol.WHITE
-
-            x = GRID_X + col * CELL_SIZE
-            y = GRID_Y + row * CELL_SIZE
-            rect = pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)
-            pygame.draw.rect(screen, color, rect)
-            pygame.draw.rect(screen, gol.GRID_COLOR, rect, 1)
-
     pygame.draw.rect(screen, (245, 245, 245), background_rect, 2)
 
 
@@ -236,8 +211,7 @@ def move_handle_to(mouse_x):
 
 
 def clear_grid():
-    global game_grid
-    game_grid = make_empty_grid(ROWS, COLS)
+    gol.clear_grid(gol.grid, ROWS, COLS)
 
 
 def parse_pattern_map(pattern_map):
@@ -253,36 +227,15 @@ PULSAR = parse_pattern_map(PULSAR_MAP)
 
 
 def place_pattern_center(pattern_coords):
-    global game_grid, user_mode
-    clear_grid()
-
-    max_row = 0
-    max_col = 0
-    for row, col in pattern_coords:
-        if row > max_row:
-            max_row = row
-        if col > max_col:
-            max_col = col
-
-    pattern_height = max_row + 1
-    pattern_width = max_col + 1
-
-    start_row = (ROWS - pattern_height) // 2
-    start_col = (COLS - pattern_width) // 2
-
-    for row, col in pattern_coords:
-        target_row = start_row + row
-        target_col = start_col + col
-        if 0 <= target_row < ROWS and 0 <= target_col < COLS:
-            game_grid[target_row][target_col] = 1
-
+    global user_mode
+    gol.place_pattern_center(gol.grid, pattern_coords, ROWS, COLS)
     user_mode = False
 
 
 def random_initialisation():
     global user_mode
-    clear_grid()
-    gol.randomize_grid(game_grid, ROWS, COLS)
+    gol.clear_grid(gol.grid, ROWS, COLS)
+    gol.randomize_grid(gol.grid, ROWS, COLS)
     user_mode = False
 
 
@@ -295,11 +248,7 @@ def toggle_cell_from_mouse(pos):
     x, y = pos
     col = (x - GRID_X) // CELL_SIZE
     row = (y - GRID_Y) // CELL_SIZE
-    if 0 <= row < ROWS and 0 <= col < COLS:
-        if game_grid[row][col] == 1:
-            game_grid[row][col] = 0
-        else:
-            game_grid[row][col] = 1
+    gol.toggle_cell(gol.grid, row, col, ROWS, COLS)
 
 
 while True:
@@ -367,7 +316,7 @@ while True:
         generation_timer += dt
         step_interval = 1000.0 / max(speed, 1)
         while generation_timer >= step_interval:
-            game_grid = gol.next_generation(game_grid, ROWS, COLS)
+            gol.grid = gol.next_generation(gol.grid, ROWS, COLS)
             generation_timer -= step_interval
 
     screen.fill(BG_UI)
