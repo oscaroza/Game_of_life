@@ -43,3 +43,7 @@ webapp/build/web
 Pour Netlify :
 - Build command : `python3 -m pip install --upgrade pip pygbag && ./build_web.sh`
 - Publish directory : `webapp/build/web`
+
+
+
+URL web pr jeu : https://game-of-life-project-ecam.netlify.app/webapp.html
