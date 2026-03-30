@@ -25,3 +25,21 @@ git push
 cliquer sur l'onglet VSCode donné en capture d'ecran. 
 ecrire la decription du changement ds la zone de texte
 Et ensuite sur le bouton commit ya une fleche tu cliques dessus et tu vas sur commit and sync. et attendre !
+
+# Build web (pygbag) + Netlify
+
+Depuis la racine du projet :
+
+```bash
+./build_web.sh
+```
+
+Le site statique est généré dans :
+
+```bash
+webapp/build/web
+```
+
+Pour Netlify :
+- Build command : `python3 -m pip install --upgrade pip pygbag && ./build_web.sh`
+- Publish directory : `webapp/build/web`

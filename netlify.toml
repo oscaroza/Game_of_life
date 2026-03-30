@@ -1,0 +1,3 @@
+[build]
+  command = "python3 -m pip install --upgrade pip pygbag && ./build_web.sh"
+  publish = "webapp/build/web"

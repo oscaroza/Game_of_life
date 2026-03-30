@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 .venv311/
+build/
+webapp/build/
+webapp/main.py
+webapp/grid.py
