@@ -1,13 +1,14 @@
-import math
-import sys
-import warnings
+from welcome import show_welcome
 
-import pygame
 
-import grid as gol
-import random
+def main():
+    should_start_game = show_welcome(duration_seconds=3)
+    if not should_start_game:
+        return
 
-from welcome import WELCOME_SCREEN
-wait 
-from UI import *
+    # UI.py lance sa boucle principale au chargement du module.
+    import UI
 
+
+if __name__ == "__main__":
+    main()
