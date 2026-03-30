@@ -33,7 +33,7 @@ def _render_text(text, color, size=50):
         return surface
 
 
-def show_welcome(image_name="Welcome.jpg", duration_seconds=5, caption="Game of Life"):
+def show_welcome(image_name="Welcome.jpg", duration_seconds=3, caption="Game of Life"):
     """Affiche un écran d'accueil pendant `duration_seconds`, puis rend la main."""
     pygame.init()
 
@@ -48,14 +48,9 @@ def show_welcome(image_name="Welcome.jpg", duration_seconds=5, caption="Game of 
     image = image.convert()
 
     clock = pygame.time.Clock()
-    text = "Continue>>"
-
-    text_surface = _render_text(text, (200, 0, 200), size=50)
-    text_rect = text_surface.get_rect()
-    text_rect.x = min(1200, width - text_rect.width - 10)
-    text_rect.y = height - text_rect.height - 50
-
-    background_rect = text_rect.inflate(20, 25)
+    label_surface = _render_text("Launching game", (40, 40, 40), size=40)
+    line_y = height - label_surface.get_height() - 50
+    right_margin = 30
 
     start_ticks = pygame.time.get_ticks()
 
@@ -70,9 +65,16 @@ def show_welcome(image_name="Welcome.jpg", duration_seconds=5, caption="Game of 
             pygame.display.quit()
             return True
 
+        remaining_seconds = max(0.0, duration_seconds - (elapsed_ms / 1000.0))
+        timer_surface = _render_text(f"{remaining_seconds:.1f}s", (200, 0, 200), size=40)
+        timer_rect = timer_surface.get_rect(right=width - right_margin, y=line_y)
+        label_rect = label_surface.get_rect(right=timer_rect.left - 16, y=line_y)
+        content_rect = label_rect.union(timer_rect).inflate(20, 16)
+
         screen.blit(image, (0, 0))
-        pygame.draw.rect(screen, (255, 255, 255), background_rect)
-        screen.blit(text_surface, text_rect)
+        pygame.draw.rect(screen, (255, 255, 255), content_rect)
+        screen.blit(label_surface, label_rect)
+        screen.blit(timer_surface, timer_rect)
         pygame.display.flip()
         clock.tick(60)
 
