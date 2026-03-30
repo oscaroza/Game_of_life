@@ -33,10 +33,46 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game of Life")
 clock = pygame.time.Clock()
 
-#use font and size for each parameter
+# Font backend selector:
+# - Prefer pygame.font (normal behavior when available)
+# - Fall back to pygame._freetype on Python/pygame combos where pygame.font is broken
+_font_backend = "pygame"
+
+
+class FreeTypeFontAdapter:
+    def __init__(self, size):
+        from pygame import _freetype
+
+        if not _freetype.get_init():
+            _freetype.init()
+        self._font = _freetype.Font(None, size=max(1, size))
+        self._font.pad = True
+        self._font.kerning = False
+
+    def render(self, text, antialias, color, background=None):
+        if background is None:
+            surface, _ = self._font.render(str(text), fgcolor=color)
+        else:
+            surface, _ = self._font.render(str(text), fgcolor=color, bgcolor=background)
+        return surface
+
+    def get_height(self):
+        return int(math.ceil(self._font.get_sized_height()))
+
+
+# use font and size for each parameter
 def make_font(name, size):
-    import pygame
-    return pygame.font.SysFont(name, size)
+    global _font_backend
+
+    if _font_backend == "pygame":
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                return pygame.font.SysFont(name, size)
+        except Exception:
+            _font_backend = "freetype"
+
+    return FreeTypeFontAdapter(size)
 
 font_title = make_font("Times New Roman", 40)
 font_button = make_font("Times New Roman", 28)
