@@ -33,40 +33,10 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game of Life")
 clock = pygame.time.Clock()
 
-
-class FreetypeFontAdapter:
-    def __init__(self, size):
-        from pygame import _freetype
-
-        _freetype.init()
-        self._font = _freetype.Font(None, size)
-
-    def render(self, text, antialias, color):
-        surface, _ = self._font.render(text or "", fgcolor=color)
-        return surface
-
-    def get_height(self):
-        return int(self._font.get_sized_height())
-
-
-_font_fallback_warned = False
-
-
+#use font and size for each parameter
 def make_font(name, size):
-    global _font_fallback_warned
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
-            return pygame.font.SysFont(name, size)
-    except Exception as exc:
-        if not _font_fallback_warned:
-            print(
-                "Warning: pygame.font unavailable, fallback to built-in freetype font "
-                f"({exc})."
-            )
-            _font_fallback_warned = True
-        return FreetypeFontAdapter(size)
-
+    import pygame
+    return pygame.font.SysFont(name, size)
 
 font_title = make_font("Times New Roman", 40)
 font_button = make_font("Times New Roman", 28)
@@ -74,7 +44,7 @@ font_slider = make_font("Times New Roman", 24)
 font_text = make_font("Times New Roman", 20)
 font_status = make_font("Times New Roman", 24)
 
-SHORTCUT_TEXT = (
+TEXT = (
     "Type :\n"
     "G : Glider\n"
     "B : Blinker\n"
@@ -84,21 +54,16 @@ SHORTCUT_TEXT = (
     "I : random initialisation\n"
     "\n"
     "Space : Play / Pause\n"
-    "Mouse : toggle cell in pause/user mode"
-)
+    "Mouse : toggle cell in pause/user mode")
 
-BUTTON_WIDTH = 120
-BUTTON_HEIGHT = 44
+BUTTON_WIDTH = 375
+BUTTON_HEIGHT = 50
 BUTTON_SPACING = 16
-BUTTON_Y = HEIGHT - BUTTON_HEIGHT - 20
+BUTTON_Y = HEIGHT - 80
 
 start_button = pygame.Rect(LEFT_PANEL_X, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT)
-pause_button = pygame.Rect(
-    start_button.right + BUTTON_SPACING, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT
-)
-reset_button = pygame.Rect(
-    pause_button.right + BUTTON_SPACING, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT
-)
+pause_button = pygame.Rect(start_button.right + BUTTON_SPACING, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT)
+reset_button = pygame.Rect(pause_button.right + BUTTON_SPACING, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT)
 
 SLIDER_HEIGHT = 36
 slider = pygame.Rect(LEFT_PANEL_X, BUTTON_Y - 75, LEFT_PANEL_WIDTH, SLIDER_HEIGHT)
@@ -322,7 +287,7 @@ while True:
 
     screen.fill(BG_UI)
     draw_title()
-    draw_multiline_text(SHORTCUT_TEXT, LEFT_PANEL_X, GRID_Y, font_text)
+    draw_multiline_text(TEXT, LEFT_PANEL_X, GRID_Y, font_text)
     draw_status()
     draw_slider()
     draw_buttons()
