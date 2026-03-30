@@ -14,26 +14,121 @@ import grid as gol
 
 pygame.init()
 
-WIDTH = 1200
-HEIGHT = 700
-TITLE_HEIGHT = 60
+WIDTH = 1280
+HEIGHT = 760
+TOP_BAR_HEIGHT = 92
+MARGIN = 24
 
 ROWS = gol.ROWS
 COLS = gol.COLS
 CELL_SIZE = gol.CELL_SIZE
 GRID_SIZE = gol.WINDOW_SIZE
-GRID_X = WIDTH - GRID_SIZE - 30
-GRID_Y = TITLE_HEIGHT + 20
+GRID_X = WIDTH - GRID_SIZE - MARGIN - 8
+GRID_Y = TOP_BAR_HEIGHT + 34
 
-LEFT_PANEL_X = 20
-LEFT_PANEL_WIDTH = GRID_X - LEFT_PANEL_X - 20
+LEFT_PANEL_X = MARGIN
+LEFT_PANEL_Y = GRID_Y - 2
+LEFT_PANEL_WIDTH = GRID_X - LEFT_PANEL_X - 24
+LEFT_PANEL_HEIGHT = HEIGHT - LEFT_PANEL_Y - MARGIN
 
-BG_UI = (30, 30, 30)
-TITLE_COLOR = (50, 50, 50)
-PANEL_TEXT = (235, 235, 235)
-BTN_START = (200, 0, 200)
-BTN_PAUSE = (100, 0, 200)
-BTN_RESET = (200, 0, 0)
+BG_TOP = (8, 15, 29)
+BG_BOTTOM = (5, 9, 19)
+GLOW_CYAN = (62, 173, 255)
+GLOW_ORANGE = (255, 138, 84)
+
+PANEL_BG = (18, 28, 48)
+PANEL_ALT = (15, 24, 42)
+PANEL_BORDER = (72, 101, 145)
+PANEL_BORDER_SOFT = (54, 81, 120)
+
+TEXT_MAIN = (238, 243, 252)
+TEXT_MUTED = (160, 178, 207)
+TEXT_ACCENT = (96, 214, 255)
+
+BTN_PLAY = (35, 174, 123)
+BTN_PAUSE = (235, 175, 76)
+BTN_RESET = (229, 91, 104)
+
+STATE_RUN = (44, 201, 141)
+STATE_PAUSE = (241, 186, 88)
+STATE_USER = (93, 163, 255)
+
+GRID_BG = (241, 246, 252)
+GRID_BORDER = (115, 149, 191)
+
+BUTTON_HEIGHT = 52
+BUTTON_GAP = 12
+BUTTON_AREA_X = LEFT_PANEL_X + 20
+BUTTON_AREA_WIDTH = LEFT_PANEL_WIDTH - 40
+BUTTON_Y = LEFT_PANEL_Y + LEFT_PANEL_HEIGHT - BUTTON_HEIGHT - 18
+BUTTON_WIDTH = (BUTTON_AREA_WIDTH - BUTTON_GAP * 2) // 3
+
+SLIDER_HEIGHT = 34
+SLIDER_Y = BUTTON_Y - 70
+SLIDER = pygame.Rect(BUTTON_AREA_X, SLIDER_Y, BUTTON_AREA_WIDTH, SLIDER_HEIGHT)
+HANDLE_RADIUS = 12
+
+STATUS_RECT = pygame.Rect(BUTTON_AREA_X - 4, SLIDER_Y - 150, BUTTON_AREA_WIDTH + 8, 126)
+SHORTCUTS_RECT = pygame.Rect(
+    BUTTON_AREA_X - 4,
+    LEFT_PANEL_Y + 16,
+    BUTTON_AREA_WIDTH + 8,
+    STATUS_RECT.y - (LEFT_PANEL_Y + 16) - 12,
+)
+
+start_button = pygame.Rect(BUTTON_AREA_X, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT)
+pause_button = pygame.Rect(
+    start_button.right + BUTTON_GAP, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT
+)
+reset_button = pygame.Rect(
+    pause_button.right + BUTTON_GAP, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT
+)
+
+MIN_SPEED = 1
+MAX_SPEED = 60
+speed = max(MIN_SPEED, min(MAX_SPEED, gol.FPS))
+handle_x = SLIDER.x + int((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED) * SLIDER.width)
+dragging = False
+
+GLIDER = [(0, 1), (1, 2), (2, 0), (2, 1), (2, 2)]
+BLINKER = [(0, 0), (0, 1), (0, 2)]
+R_PENTOMINO = [(0, 1), (0, 2), (1, 0), (1, 1), (2, 1)]
+PULSAR_MAP = [
+    ".............",
+    "..***...***..",
+    ".............",
+    "*....*.*....*",
+    "*....*.*....*",
+    "*....*.*....*",
+    "..***...***..",
+    ".............",
+    "..***...***..",
+    "*....*.*....*",
+    "*....*.*....*",
+    "*....*.*....*",
+    "..***...***..",
+]
+
+SHORTCUT_GROUPS = [
+    (
+        "Patterns",
+        [
+            "G  Glider",
+            "B  Blinker",
+            "P  Pulsar",
+            "R  R-pentomino",
+            "U  Custom mode",
+            "I  Random fill",
+        ],
+    ),
+    (
+        "Runtime",
+        [
+            "Space  Play/Pause",
+            "Click a cell in Pause/User mode",
+        ],
+    ),
+]
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game of Life - Web")
@@ -74,151 +169,276 @@ def make_font(name, size):
         return FreetypeFontAdapter(size)
 
 
-font_title = make_font("Times New Roman", 40)
-font_button = make_font("Times New Roman", 28)
-font_slider = make_font("Times New Roman", 24)
-font_text = make_font("Times New Roman", 20)
-font_status = make_font("Times New Roman", 24)
-
-SHORTCUT_TEXT = (
-    "Type :\n"
-    "G : Glider\n"
-    "B : Blinker\n"
-    "P : Pulsar\n"
-    "R : R-pentomino\n"
-    "U : User configuration\n"
-    "I : random initialisation\n"
-    "\n"
-    "Space : Play / Pause\n"
-    "Mouse : toggle cell in pause/user mode"
-)
-
-BUTTON_WIDTH = 120
-BUTTON_HEIGHT = 44
-BUTTON_SPACING = 16
-BUTTON_Y = HEIGHT - BUTTON_HEIGHT - 20
-
-start_button = pygame.Rect(LEFT_PANEL_X, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT)
-pause_button = pygame.Rect(
-    start_button.right + BUTTON_SPACING, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT
-)
-reset_button = pygame.Rect(
-    pause_button.right + BUTTON_SPACING, BUTTON_Y, BUTTON_WIDTH, BUTTON_HEIGHT
-)
-
-SLIDER_HEIGHT = 36
-slider = pygame.Rect(LEFT_PANEL_X, BUTTON_Y - 75, LEFT_PANEL_WIDTH, SLIDER_HEIGHT)
-handle_radius = 10
-
-MIN_SPEED = 1
-MAX_SPEED = 60
-speed = max(MIN_SPEED, min(MAX_SPEED, gol.FPS))
-handle_x = slider.x + int((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED) * slider.width)
-dragging = False
-
-GLIDER = [(0, 1), (1, 2), (2, 0), (2, 1), (2, 2)]
-BLINKER = [(0, 0), (0, 1), (0, 2)]
-R_PENTOMINO = [(0, 1), (0, 2), (1, 0), (1, 1), (2, 1)]
-PULSAR_MAP = [
-    ".............",
-    "..***...***..",
-    ".............",
-    "*....*.*....*",
-    "*....*.*....*",
-    "*....*.*....*",
-    "..***...***..",
-    ".............",
-    "..***...***..",
-    "*....*.*....*",
-    "*....*.*....*",
-    "*....*.*....*",
-    "..***...***..",
-]
+font_title = make_font("Avenir Next", 42)
+font_subtitle = make_font("Avenir Next", 20)
+font_heading = make_font("Avenir Next", 26)
+font_button = make_font("Avenir Next", 24)
+font_text = make_font("Avenir Next", 18)
+font_small = make_font("Avenir Next", 16)
+font_stat_label = make_font("Avenir Next", 15)
+font_stat_value = make_font("Avenir Next", 24)
 
 
-gol.reset_module_grid()
-paused = True
-user_mode = False
-generation_timer = 0.0
+def blend(color_a, color_b, ratio):
+    ratio = max(0.0, min(1.0, ratio))
+    return tuple(
+        int(color_a[index] + (color_b[index] - color_a[index]) * ratio)
+        for index in range(3)
+    )
 
 
-def draw_multiline_text(text, x, y, font, color=PANEL_TEXT, line_spacing=4):
-    lines = text.split("\n")
-    for index, line in enumerate(lines):
-        surface = font.render(line, True, color)
-        screen.blit(surface, (x, y + index * (font.get_height() + line_spacing)))
+def make_background_surface():
+    background = pygame.Surface((WIDTH, HEIGHT))
+
+    for y in range(HEIGHT):
+        factor = y / (HEIGHT - 1)
+        color = blend(BG_TOP, BG_BOTTOM, factor)
+        pygame.draw.line(background, color, (0, y), (WIDTH, y))
+
+    glow = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    pygame.draw.circle(glow, (*GLOW_CYAN, 38), (220, 150), 230)
+    pygame.draw.circle(glow, (*GLOW_ORANGE, 28), (980, 640), 210)
+    pygame.draw.circle(glow, (65, 110, 210, 22), (1040, 150), 180)
+
+    for x in range(0, WIDTH, 16):
+        pygame.draw.line(glow, (255, 255, 255, 8), (x, 0), (x - 120, HEIGHT), 1)
+
+    background.blit(glow, (0, 0))
+    return background
 
 
-def draw_title():
-    pygame.draw.rect(screen, TITLE_COLOR, (0, 0, WIDTH, TITLE_HEIGHT))
-    text = font_title.render("Game of Life", True, (255, 255, 255))
-    screen.blit(text, text.get_rect(center=(WIDTH // 2, TITLE_HEIGHT // 2)))
+def draw_shadow(rect, radius=18, offset=(0, 6), alpha=70):
+    shadow_surface = pygame.Surface((rect.width + 24, rect.height + 24), pygame.SRCALPHA)
+    pygame.draw.rect(
+        shadow_surface,
+        (0, 0, 0, alpha),
+        shadow_surface.get_rect(),
+        border_radius=radius + 8,
+    )
+    screen.blit(shadow_surface, (rect.x - 12 + offset[0], rect.y - 10 + offset[1]))
 
 
-def draw_buttons():
-    pygame.draw.rect(screen, BTN_START, start_button)
-    pygame.draw.rect(screen, BTN_PAUSE, pause_button)
-    pygame.draw.rect(screen, BTN_RESET, reset_button)
+def draw_panel(rect, fill_color, border_color, radius=18, with_shadow=True):
+    if with_shadow:
+        draw_shadow(rect, radius=radius)
 
-    start_text = font_button.render("PLAY", True, (255, 255, 255))
-    pause_text = font_button.render("PAUSE", True, (255, 255, 255))
-    reset_text = font_button.render("RESET", True, (255, 255, 255))
+    pygame.draw.rect(screen, fill_color, rect, border_radius=radius)
+    pygame.draw.rect(screen, border_color, rect, 2, border_radius=radius)
 
-    screen.blit(start_text, start_text.get_rect(center=start_button.center))
-    screen.blit(pause_text, pause_text.get_rect(center=pause_button.center))
-    screen.blit(reset_text, reset_text.get_rect(center=reset_button.center))
+
+def state_visuals():
+    if user_mode:
+        return "USER", STATE_USER
+    if paused:
+        return "PAUSE", STATE_PAUSE
+    return "RUN", STATE_RUN
+
+
+def draw_header(pulse):
+    header_rect = pygame.Rect(MARGIN, MARGIN, WIDTH - MARGIN * 2, TOP_BAR_HEIGHT - 10)
+    draw_panel(header_rect, PANEL_BG, PANEL_BORDER, radius=22)
+
+    title = font_title.render("Conway's Game of Life", True, TEXT_MAIN)
+    subtitle = font_subtitle.render("Interactive web playground", True, TEXT_MUTED)
+    screen.blit(title, (header_rect.x + 24, header_rect.y + 10))
+    screen.blit(subtitle, (header_rect.x + 26, header_rect.y + 54))
+
+    state_name, state_color = state_visuals()
+    chip_rect = pygame.Rect(header_rect.right - 250, header_rect.y + 15, 230, 44)
+    chip_fill = blend(state_color, (255, 255, 255), 0.08)
+    chip_border = blend(state_color, (255, 255, 255), 0.35)
+    pygame.draw.rect(screen, chip_fill, chip_rect, border_radius=14)
+    pygame.draw.rect(screen, chip_border, chip_rect, 2, border_radius=14)
+
+    pulse_radius = 5 + int(2 * pulse)
+    if paused or user_mode:
+        pulse_radius = 5
+
+    pygame.draw.circle(screen, state_color, (chip_rect.x + 18, chip_rect.centery), pulse_radius)
+
+    chip_text = font_small.render(state_name, True, TEXT_MAIN)
+    chip_speed = font_small.render(f"{speed} gen/s", True, TEXT_MUTED)
+    screen.blit(chip_text, (chip_rect.x + 32, chip_rect.y + 12))
+    screen.blit(chip_speed, (chip_rect.x + 118, chip_rect.y + 12))
+
+
+def draw_shortcuts_panel():
+    draw_panel(
+        SHORTCUTS_RECT,
+        PANEL_ALT,
+        PANEL_BORDER_SOFT,
+        radius=18,
+        with_shadow=False,
+    )
+
+    y_cursor = SHORTCUTS_RECT.y + 12
+    title = font_heading.render("Controls", True, TEXT_MAIN)
+    screen.blit(title, (SHORTCUTS_RECT.x + 14, y_cursor))
+    y_cursor += 34
+
+    for group_name, items in SHORTCUT_GROUPS:
+        group_title = font_small.render(group_name.upper(), True, TEXT_ACCENT)
+        screen.blit(group_title, (SHORTCUTS_RECT.x + 14, y_cursor))
+        y_cursor += 22
+
+        for item in items:
+            bullet_y = y_cursor + 8
+            pygame.draw.circle(screen, TEXT_MUTED, (SHORTCUTS_RECT.x + 19, bullet_y), 2)
+            item_surface = font_small.render(item, True, TEXT_MUTED)
+            screen.blit(item_surface, (SHORTCUTS_RECT.x + 30, y_cursor))
+            y_cursor += 21
+
+        y_cursor += 8
+
+
+def draw_status_panel():
+    draw_panel(STATUS_RECT, PANEL_ALT, PANEL_BORDER_SOFT, radius=18, with_shadow=False)
+
+    state_name, state_color = state_visuals()
+    live_cells = gol.count_live_cells(gol.grid, ROWS, COLS)
+
+    metrics = [
+        ("State", state_name, state_color),
+        ("Live Cells", str(live_cells), TEXT_ACCENT),
+        ("Generation", str(generation_count), (255, 185, 115)),
+    ]
+
+    card_gap = 10
+    card_width = (STATUS_RECT.width - 16 - card_gap * 2) // 3
+    card_height = STATUS_RECT.height - 16
+
+    for index, (label, value, value_color) in enumerate(metrics):
+        card_x = STATUS_RECT.x + 8 + index * (card_width + card_gap)
+        card_rect = pygame.Rect(card_x, STATUS_RECT.y + 8, card_width, card_height)
+
+        card_fill = blend(PANEL_BG, (255, 255, 255), 0.03)
+        card_border = blend(PANEL_BORDER_SOFT, (255, 255, 255), 0.15)
+        pygame.draw.rect(screen, card_fill, card_rect, border_radius=12)
+        pygame.draw.rect(screen, card_border, card_rect, 1, border_radius=12)
+
+        label_surface = font_stat_label.render(label, True, TEXT_MUTED)
+        value_surface = font_stat_value.render(value, True, value_color)
+
+        screen.blit(label_surface, (card_rect.x + 10, card_rect.y + 10))
+        value_rect = value_surface.get_rect(midleft=(card_rect.x + 10, card_rect.y + 58))
+        screen.blit(value_surface, value_rect)
 
 
 def draw_slider():
-    slider_y = slider.y + slider.height // 2
-    pygame.draw.line(
-        screen,
-        (255, 255, 255),
-        (slider.x, slider_y),
-        (slider.right, slider_y),
-        5,
+    slider_panel = pygame.Rect(SLIDER.x - 10, SLIDER.y - 14, SLIDER.width + 20, SLIDER.height + 28)
+    draw_panel(
+        slider_panel,
+        PANEL_ALT,
+        PANEL_BORDER_SOFT,
+        radius=14,
+        with_shadow=False,
     )
-    pygame.draw.circle(screen, (255, 128, 0), (handle_x, slider_y), handle_radius)
-    label = font_slider.render(f"Speed: {speed} gen/s", True, (255, 170, 70))
-    screen.blit(label, (slider.x, slider.y - 32))
+
+    label = font_small.render("Simulation speed", True, TEXT_MUTED)
+    speed_surface = font_small.render(f"{speed} gen/s", True, TEXT_ACCENT)
+    screen.blit(label, (slider_panel.x + 10, slider_panel.y + 9))
+    screen.blit(speed_surface, (slider_panel.right - speed_surface.get_width() - 10, slider_panel.y + 9))
+
+    track_rect = pygame.Rect(SLIDER.x, SLIDER.centery - 4, SLIDER.width, 8)
+    pygame.draw.rect(screen, blend(PANEL_BG, (255, 255, 255), 0.08), track_rect, border_radius=4)
+
+    fill_width = max(1, handle_x - SLIDER.x)
+    fill_rect = pygame.Rect(SLIDER.x, track_rect.y, fill_width, track_rect.height)
+    pygame.draw.rect(screen, TEXT_ACCENT, fill_rect, border_radius=4)
+
+    knob_center = (handle_x, SLIDER.centery)
+    pygame.draw.circle(screen, (255, 255, 255), knob_center, HANDLE_RADIUS + 2)
+    pygame.draw.circle(screen, GLOW_ORANGE, knob_center, HANDLE_RADIUS - 1)
 
 
-def draw_status():
-    if paused:
-        state_text = "PAUSE"
-    else:
-        state_text = "RUN"
+def draw_buttons(mouse_pos):
+    button_specs = [
+        ("RUN", start_button, BTN_PLAY, (not paused and not user_mode)),
+        ("PAUSE", pause_button, BTN_PAUSE, (paused and not user_mode)),
+        ("RESET", reset_button, BTN_RESET, False),
+    ]
 
-    if user_mode:
-        state_text = "USER"
+    for label, rect, base_color, selected in button_specs:
+        hovered = rect.collidepoint(mouse_pos)
+        fill_color = base_color
 
-    live_cells = gol.count_live_cells(gol.grid, ROWS, COLS)
-    status = f"State: {state_text}  |  Live cells: {live_cells}"
-    surface = font_status.render(status, True, (235, 235, 235))
-    screen.blit(surface, (LEFT_PANEL_X, GRID_Y + 270))
+        if hovered:
+            fill_color = blend(fill_color, (255, 255, 255), 0.16)
+        if selected:
+            fill_color = blend(fill_color, (255, 255, 255), 0.12)
+
+        border_color = blend(fill_color, (255, 255, 255), 0.34)
+
+        draw_shadow(rect, radius=14, offset=(0, 4), alpha=60)
+        pygame.draw.rect(screen, fill_color, rect, border_radius=14)
+        pygame.draw.rect(screen, border_color, rect, 2, border_radius=14)
+
+        text_surface = font_button.render(label, True, (255, 255, 255))
+        screen.blit(text_surface, text_surface.get_rect(center=rect.center))
 
 
-def draw_grid():
+def draw_grid_panel(mouse_pos):
+    panel_rect = pygame.Rect(GRID_X - 18, GRID_Y - 18, GRID_SIZE + 36, GRID_SIZE + 36)
+    draw_panel(panel_rect, PANEL_BG, PANEL_BORDER, radius=20)
+
+    chip_rect = pygame.Rect(GRID_X + 12, GRID_Y - 34, 180, 24)
+    pygame.draw.rect(screen, blend(PANEL_ALT, (255, 255, 255), 0.08), chip_rect, border_radius=8)
+    chip_text = font_small.render("Simulation Grid", True, TEXT_MUTED)
+    screen.blit(chip_text, (chip_rect.x + 12, chip_rect.y + 4))
+
     gol.draw_grid(screen, gol.grid, ROWS, COLS, CELL_SIZE, GRID_X, GRID_Y)
-    background_rect = pygame.Rect(GRID_X, GRID_Y, GRID_SIZE, GRID_SIZE)
-    pygame.draw.rect(screen, (245, 245, 245), background_rect, 2)
+    grid_rect = pygame.Rect(GRID_X, GRID_Y, GRID_SIZE, GRID_SIZE)
+
+    pygame.draw.rect(screen, GRID_BG, grid_rect, 2, border_radius=4)
+    pygame.draw.rect(screen, GRID_BORDER, grid_rect, 1, border_radius=4)
+
+    if point_in_grid(mouse_pos) and (paused or user_mode):
+        cell_col = (mouse_pos[0] - GRID_X) // CELL_SIZE
+        cell_row = (mouse_pos[1] - GRID_Y) // CELL_SIZE
+        highlight = pygame.Rect(
+            GRID_X + cell_col * CELL_SIZE,
+            GRID_Y + cell_row * CELL_SIZE,
+            CELL_SIZE,
+            CELL_SIZE,
+        )
+        pygame.draw.rect(screen, (90, 176, 255), highlight, 2)
+
+
+def render_ui(mouse_pos):
+    pulse = (math.sin(pygame.time.get_ticks() / 260.0) + 1.0) / 2.0
+
+    screen.blit(BACKGROUND_SURFACE, (0, 0))
+
+    left_outer_rect = pygame.Rect(LEFT_PANEL_X, LEFT_PANEL_Y, LEFT_PANEL_WIDTH, LEFT_PANEL_HEIGHT)
+    draw_panel(left_outer_rect, PANEL_BG, PANEL_BORDER, radius=22)
+
+    draw_header(pulse)
+    draw_shortcuts_panel()
+    draw_status_panel()
+    draw_slider()
+    draw_buttons(mouse_pos)
+    draw_grid_panel(mouse_pos)
+
+    pygame.display.flip()
 
 
 def update_speed():
     global speed
-    ratio = (handle_x - slider.x) / slider.width
+    ratio = (handle_x - SLIDER.x) / SLIDER.width
     raw_speed = MIN_SPEED + ratio * (MAX_SPEED - MIN_SPEED)
     speed = max(MIN_SPEED, min(MAX_SPEED, int(round(raw_speed))))
 
 
 def move_handle_to(mouse_x):
     global handle_x
-    handle_x = max(slider.x, min(mouse_x, slider.right))
+    handle_x = max(SLIDER.x, min(mouse_x, SLIDER.right))
     update_speed()
 
 
 def clear_grid():
+    global generation_count
     gol.clear_grid(gol.grid, ROWS, COLS)
+    generation_count = 0
 
 
 def parse_pattern_map(pattern_map):
@@ -232,18 +452,27 @@ def parse_pattern_map(pattern_map):
 
 PULSAR = parse_pattern_map(PULSAR_MAP)
 
+gol.reset_module_grid()
+paused = True
+user_mode = False
+generation_timer = 0.0
+generation_count = 0
+BACKGROUND_SURFACE = make_background_surface()
+
 
 def place_pattern_center(pattern_coords):
-    global user_mode
+    global user_mode, generation_count
     gol.place_pattern_center(gol.grid, pattern_coords, ROWS, COLS)
     user_mode = False
+    generation_count = 0
 
 
 def random_initialisation():
-    global user_mode
+    global user_mode, generation_count
     gol.clear_grid(gol.grid, ROWS, COLS)
     gol.randomize_grid(gol.grid, ROWS, COLS)
     user_mode = False
+    generation_count = 0
 
 
 def point_in_grid(pos):
@@ -259,11 +488,12 @@ def toggle_cell_from_mouse(pos):
 
 
 async def main():
-    global dragging, paused, user_mode, generation_timer
-    running = True
+    global dragging, paused, user_mode, generation_timer, generation_count
 
+    running = True
     while running:
         dt = clock.tick(60)
+        mouse_pos = pygame.mouse.get_pos()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -271,24 +501,24 @@ async def main():
                 break
 
             if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = event.pos
+                click_pos = event.pos
 
-                if start_button.collidepoint(mouse_pos):
+                if start_button.collidepoint(click_pos):
                     paused = False
                     user_mode = False
-                elif pause_button.collidepoint(mouse_pos):
+                elif pause_button.collidepoint(click_pos):
                     paused = True
-                elif reset_button.collidepoint(mouse_pos):
+                elif reset_button.collidepoint(click_pos):
                     clear_grid()
                     paused = True
                     user_mode = False
-                elif slider.collidepoint(mouse_pos) or math.dist(
-                    mouse_pos, (handle_x, slider.y + slider.height // 2)
-                ) <= handle_radius + 4:
+                elif SLIDER.collidepoint(click_pos) or math.dist(
+                    click_pos, (handle_x, SLIDER.y + SLIDER.height // 2)
+                ) <= HANDLE_RADIUS + 4:
                     dragging = True
-                    move_handle_to(mouse_pos[0])
-                elif point_in_grid(mouse_pos) and (paused or user_mode):
-                    toggle_cell_from_mouse(mouse_pos)
+                    move_handle_to(click_pos[0])
+                elif point_in_grid(click_pos) and (paused or user_mode):
+                    toggle_cell_from_mouse(click_pos)
 
             elif event.type == pygame.MOUSEBUTTONUP:
                 dragging = False
@@ -329,15 +559,9 @@ async def main():
             while generation_timer >= step_interval:
                 gol.grid = gol.next_generation(gol.grid, ROWS, COLS)
                 generation_timer -= step_interval
+                generation_count += 1
 
-        screen.fill(BG_UI)
-        draw_title()
-        draw_multiline_text(SHORTCUT_TEXT, LEFT_PANEL_X, GRID_Y, font_text)
-        draw_status()
-        draw_slider()
-        draw_buttons()
-        draw_grid()
-        pygame.display.flip()
+        render_ui(mouse_pos)
 
         # Yield control to browser event loop in WebAssembly builds.
         await asyncio.sleep(0)
