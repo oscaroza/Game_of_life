@@ -38,6 +38,48 @@ if [ ! -f "$WEB_DIST_DIR/webapp.html" ]; then
   exit 1
 fi
 
+# Stop pygbag once the output file exists so it cannot overwrite our fixes.
+if kill -0 "$PYGBAG_PID" 2>/dev/null; then
+  kill "$PYGBAG_PID" >/dev/null 2>&1 || true
+fi
+wait "$PYGBAG_PID" 2>/dev/null || true
+
+# Some pygbag builds miss embedding main.py in webapp.html.
+# Inject it explicitly if absent to avoid "NameError: main is not defined".
+"$PYTHON_BIN" - "$WEBAPP_DIR" "$WEB_DIST_DIR/webapp.html" <<'PY'
+import base64
+import sys
+from pathlib import Path
+
+webapp_dir = Path(sys.argv[1])
+html_path = Path(sys.argv[2])
+
+html = html_path.read_text(encoding="utf-8")
+if 'with open("main.py"' not in html:
+    main_code = (webapp_dir / "main.py").read_text(encoding="utf-8")
+    encoded = base64.b64encode(main_code.encode("utf-8")).decode("ascii")
+    injection = (
+        "import base64\n"
+        f'with open("main.py","wb") as fs:fs.write(base64.b64decode("{encoded}"))\n\n'
+    )
+    marker = "# fmt:on"
+    if marker not in html:
+        raise RuntimeError(f"Marker '{marker}' not found in {html_path}")
+    html = html.replace(marker, injection + marker, 1)
+
+if 'import_module("main").main' not in html:
+    marker = "# fmt:on"
+    if marker not in html:
+        raise RuntimeError(f"Marker '{marker}' not found in {html_path}")
+    html = html.replace(
+        marker,
+        'import importlib\nmain = importlib.import_module("main").main\n\n' + marker,
+        1,
+    )
+
+html_path.write_text(html, encoding="utf-8")
+PY
+
 # Keep pygbag entrypoint filename (webapp.html) so embed autodetection works.
 # Provide index.html as a thin redirect for Netlify root.
 cat > "$WEB_DIST_DIR/index.html" <<'HTML'
@@ -53,8 +95,3 @@ cat > "$WEB_DIST_DIR/index.html" <<'HTML'
   </body>
 </html>
 HTML
-
-if kill -0 "$PYGBAG_PID" 2>/dev/null; then
-  kill "$PYGBAG_PID" >/dev/null 2>&1 || true
-fi
-wait "$PYGBAG_PID" 2>/dev/null || true
