@@ -92,7 +92,7 @@ handle_radius = 10
 handle_x = slider.x + BUTTON_WIDTH // 2
 dragging = False
 speed = 50
-top_left_text = "type G for Glider \n B : Blinker \n P : Pulsar \n R : R-pentomino \n U : User configuration \n I : random initialisation" 
+top_left_text = "type \n G : Glider \n B : Blinker \n P : Pulsar \n R : R-pentomino \n U : User configuration \n I : random initialisation" 
 
 #Functions
 def draw_title():
