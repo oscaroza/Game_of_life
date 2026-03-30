@@ -2,7 +2,13 @@ import asyncio
 import math
 import warnings
 
-import pygame
+try:
+    import pygame
+except Exception:
+    import pygame_ce as pygame
+
+if not hasattr(pygame, "init"):
+    import pygame_ce as pygame
 
 import grid as gol
 

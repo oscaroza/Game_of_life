@@ -17,6 +17,10 @@ else
 fi
 
 WEB_DIST_DIR="$WEBAPP_DIR/build/web"
+mkdir -p "$WEB_DIST_DIR"
+
+# Ensure we wait for a fresh file from the current pygbag run.
+rm -f "$WEB_DIST_DIR/webapp.html" "$WEB_DIST_DIR/index.html"
 
 "$PYTHON_BIN" -m pygbag --build --html "$WEBAPP_DIR" &
 PYGBAG_PID=$!
@@ -67,15 +71,33 @@ if 'with open("main.py"' not in html:
         raise RuntimeError(f"Marker '{marker}' not found in {html_path}")
     html = html.replace(marker, injection + marker, 1)
 
-if 'import_module("main").main' not in html:
+bootstrap = (
+    "import pygame\n"
+    "try:\n"
+    "    import pygame_ce as _pygame_ce\n"
+    "except Exception:\n"
+    "    _pygame_ce = None\n"
+    "if not hasattr(pygame, 'init') and _pygame_ce is not None:\n"
+    "    pygame = _pygame_ce\n"
+    "import importlib\n"
+    "main = importlib.import_module(\"main\").main\n\n"
+)
+
+legacy_bootstraps = (
+    "import importlib\nmain = importlib.import_module(\"main\").main\n\n",
+    "import importlib\nmain = importlib.import_module('main').main\n\n",
+)
+for legacy in legacy_bootstraps:
+    html = html.replace(legacy, bootstrap)
+
+while (bootstrap + bootstrap) in html:
+    html = html.replace(bootstrap + bootstrap, bootstrap)
+
+if bootstrap not in html:
     marker = "# fmt:on"
     if marker not in html:
         raise RuntimeError(f"Marker '{marker}' not found in {html_path}")
-    html = html.replace(
-        marker,
-        'import importlib\nmain = importlib.import_module("main").main\n\n' + marker,
-        1,
-    )
+    html = html.replace(marker, bootstrap + marker, 1)
 
 html_path.write_text(html, encoding="utf-8")
 PY
