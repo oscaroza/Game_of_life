@@ -1,2 +1,7 @@
 git config --global user.name "Prénom Nom"
 git config --global user.email "son.email@example.com"
+
+
+
+
+    test
