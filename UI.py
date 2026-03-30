@@ -75,7 +75,8 @@ font_text = make_font("Times New Roman", 20)
 font_status = make_font("Times New Roman", 24)
 
 SHORTCUT_TEXT = (
-    "Type G for Glider\n"
+    "Type :\n"
+    "G : Glider\n"
     "B : Blinker\n"
     "P : Pulsar\n"
     "R : R-pentomino\n"
