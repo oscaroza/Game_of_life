@@ -1,0 +1,74 @@
+Je vais t'expliquer le fichier ligne par ligne, comme si tu ne savais rien.Voilà l'explication complète, bloc par bloc.
+
+---
+
+**Les imports et constantes (lignes 1-16)**
+
+```python
+import random
+import pygame
+```
+`random` sert uniquement pour la fonction qui remplit la grille aléatoirement. `pygame` est importé ici parce que `draw_grid` en a besoin pour dessiner les cellules.
+
+Les constantes `ROWS`, `COLS`, `CELL_SIZE` définissent la taille de la grille. `WINDOW_SIZE` se calcule automatiquement depuis ces valeurs (`46 × 11 = 506`). `FPS = 15` est la vitesse par défaut, elle est lue par `UI.py` au démarrage. Les couleurs sont des tuples RGB simples, comme vu dans le cours Images.
+
+---
+
+**La grille globale (lignes 18-20)**
+
+```python
+grid = []
+for row in range(ROWS):
+    grid.append([0] * COLS)
+```
+
+La grille est une liste de listes. Chaque case vaut `0` (morte) ou `1` (vivante). `[0] * COLS` crée une ligne de 46 zéros d'un coup. `UI.py` importe ce fichier et utilise directement `gol.grid` pour lire et modifier la grille.
+
+---
+
+Voici un schéma pour visualiser la structure :---
+
+**`make_empty_grid`** crée une nouvelle grille vide. Elle est appelée par `reset_module_grid` et par `next_generation`. Le fait de l'avoir comme fonction séparée évite de répéter le même code à deux endroits.
+
+**`reset_module_grid`** remet la grille globale à zéro. `UI.py` l'appelle au démarrage et quand on appuie sur RESET.
+
+---
+
+**`count_neighbours`** (la plus importante à comprendre)
+
+```python
+for dr in [-1, 0, 1]:
+    for dc in [-1, 0, 1]:
+```
+
+`dr` et `dc` sont des "delta row" et "delta col" — c'est-à-dire le décalage par rapport à la cellule actuelle. En combinant -1, 0, 1 pour les deux, on obtient les 9 cases autour (y compris la case elle-même). Le `if dr == 0 and dc == 0` saute la case centrale. La condition `0 <= r < num_rows` évite de sortir du tableau sur les bords.---
+
+**`next_generation`** — le cœur du jeu
+
+On commence par copier la grille entière dans `new_grid`. C'est obligatoire : si on modifiait `grid` directement, les cellules déjà mises à jour influenceraient le calcul des cellules suivantes, ce que les règles interdisent (tout doit être calculé en même temps).
+
+Ensuite on applique les 4 règles du jeu de la vie sur chaque cellule. La version simplifiée : si vivante et moins de 2 ou plus de 3 voisins → meurt. Si morte et exactement 3 voisins → naît.
+
+---
+
+**`randomize_grid`** parcourt toutes les cellules et pour chacune tire un nombre entre 0 et 1. Si ce nombre est inférieur à 0.3 (30% de chance), la cellule devient vivante.
+
+**`clear_grid`** remet toutes les cellules à 0.
+
+**`toggle_cell`** inverse l'état d'une cellule : si elle est à 1 elle passe à 0, sinon elle passe à 1. C'est ce qui se passe quand tu cliques sur une cellule dans l'interface.
+
+---
+
+**`place_pattern_center`** — placer un pattern au milieu
+
+On efface la grille, puis on cherche la hauteur et largeur du pattern en parcourant ses coordonnées. On calcule ensuite le décalage pour que le pattern soit centré (`(num_rows - max_row - 1) // 2`), et on place chaque cellule du pattern à sa position décalée.
+
+---
+
+**`count_live_cells`** parcourt toute la grille et compte les cases à 1. Utilisé pour afficher le nombre de cellules vivantes dans le statut de l'interface.
+
+---
+
+**`draw_grid`** — l'affichage
+
+Pour chaque cellule, on calcule sa position en pixels (`x = offset_x + col * cell_size`), on dessine un rectangle plein (noir si vivante, blanc si morte), puis on dessine le contour de la grille par-dessus en gris clair.
