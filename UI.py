@@ -1,18 +1,20 @@
 import math
 import sys
-import warnings
 
 import pygame
 
 import grid as gol
+
 import grid_persistence
 
 pygame.init()
-
+ 
+#size of the window
 WIDTH = 1200
 HEIGHT = 700
 TITLE_HEIGHT = 60
 
+#grid parameters
 ROWS = gol.ROWS
 COLS = gol.COLS
 CELL_SIZE = gol.CELL_SIZE
@@ -23,6 +25,7 @@ GRID_Y = TITLE_HEIGHT + 20
 LEFT_PANEL_X = 20
 LEFT_PANEL_WIDTH = GRID_X - LEFT_PANEL_X - 20
 
+#Colors of the UI elements
 BG_UI = (30, 30, 30)
 TITLE_COLOR = (50, 50, 50)
 PANEL_TEXT = (235, 235, 235)
@@ -30,57 +33,22 @@ BTN_START = (200, 0, 200)
 BTN_PAUSE = (100, 0, 200)
 BTN_RESET = (200, 0, 0)
 
+#Set up the display
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game of Life")
 clock = pygame.time.Clock()
 
-# Font backend selector:
-# - Prefer pygame.font (normal behavior when available)
-# - Fall back to pygame._freetype on Python/pygame combos where pygame.font is broken
-_font_backend = "pygame"
-
-
-class FreeTypeFontAdapter:
-    def __init__(self, size):
-        from pygame import _freetype
-
-        if not _freetype.get_init():
-            _freetype.init()
-        self._font = _freetype.Font(None, size=max(1, size))
-        self._font.pad = True
-        self._font.kerning = False
-
-    def render(self, text, antialias, color, background=None):
-        if background is None:
-            surface, _ = self._font.render(str(text), fgcolor=color)
-        else:
-            surface, _ = self._font.render(str(text), fgcolor=color, bgcolor=background)
-        return surface
-
-    def get_height(self):
-        return int(math.ceil(self._font.get_sized_height()))
-
-
-# use font and size for each parameter
 def make_font(name, size):
-    global _font_backend
+    return pygame.font.SysFont(name, size)
 
-    if _font_backend == "pygame":
-        try:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", RuntimeWarning)
-                return pygame.font.SysFont(name, size)
-        except Exception:
-            _font_backend = "freetype"
-
-    return FreeTypeFontAdapter(size)
-
+#fonts for different UI elements
 font_title = make_font("Times New Roman", 40)
 font_button = make_font("Times New Roman", 28)
 font_slider = make_font("Times New Roman", 24)
 font_text = make_font("Times New Roman", 20)
 font_status = make_font("Times New Roman", 24)
 
+#Instructions for the user
 TEXT = (
     "Type :\n"
     "G : Glider\n"
@@ -93,6 +61,7 @@ TEXT = (
     "Space : Play / Pause\n"
     "Mouse : toggle cell in pause/user mode")
 
+#Button dimensions and positions
 BUTTON_WIDTH = 375
 BUTTON_HEIGHT = 50
 BUTTON_SPACING = 16
@@ -112,6 +81,7 @@ speed = max(MIN_SPEED, min(MAX_SPEED, gol.FPS))
 handle_x = slider.x + int((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED) * slider.width)
 dragging = False
 
+#Predefined patterns
 GLIDER = [(0, 1), (1, 2), (2, 0), (2, 1), (2, 2)]
 BLINKER = [(0, 0), (0, 1), (0, 2)]
 R_PENTOMINO = [(0, 1), (0, 2), (1, 0), (1, 1), (2, 1)]
@@ -128,34 +98,49 @@ PULSAR = [
     (12, 2), (12, 3), (12, 4), (12, 8), (12, 9), (12, 10),
 ]
 
+#Place predefined patterns in the center of the grid
+def place_pattern_center(pattern_coords):
+    global user_mode
+    gol.place_pattern_center(gol.grid, pattern_coords, ROWS, COLS)
+    user_mode = False
 
+#Randomly initialize the grid function
+def random_initialisation():
+    global user_mode
+    gol.clear_grid(gol.grid, ROWS, COLS)
+    gol.randomize_grid(gol.grid, ROWS, COLS)
+    user_mode = False
+
+#Initialize the grid and state variables
 gol.reset_module_grid()
 paused = True
 user_mode = False
 generation_timer = 0.0
 
-
-def save_current_grid_state():
-    grid_persistence.save_live_cells(gol.grid, ROWS, COLS)
-
-
-grid_persistence.load_live_cells(gol.grid, ROWS, COLS)
-grid_persistence.register_auto_save(save_current_grid_state)
+def save current grid_state():
+grid_persistence. save_live_cells (gol.grid, ROWS, COLS)
+grid_persistence. load_live_cells(gol.grid, ROWS,COLS)
+grid_persistence. register_auto_save(save_current_grid_state)
 
 
+#Functions to draw UI elements and handle interactions
 def draw_multiline_text(text, x, y, font, color=PANEL_TEXT, line_spacing=4):
     lines = text.split("\n")
     for index, line in enumerate(lines):
         surface = font.render(line, True, color)
         screen.blit(surface, (x, y + index * (font.get_height() + line_spacing)))
+    for event in pygame.event.get ():
+        if event. type == pygame. QUIT:
+        save_current_grid_state()
+        pygame.quit()
 
-
+#Title bar function
 def draw_title():
-    pygame.draw.rect(screen, TITLE_COLOR, (0, 0, WIDTH, TITLE_HEIGHT))
-    text = font_title.render("Game of Life", True, (255, 255, 255))
-    screen.blit(text, text.get_rect(center=(WIDTH // 2, TITLE_HEIGHT // 2)))
+    pygame.draw.rect(screen, TITLE_COLOR, (0, 0, WIDTH, TITLE_HEIGHT)) #position, size of the rectangle
+    text = font_title.render("Game of Life", True, (255, 255, 255)) #color of the text 
+    screen.blit(text, text.get_rect(center=(WIDTH // 2, TITLE_HEIGHT // 2))) #position the text in the center of the title bar
 
-
+#Control buttons function
 def draw_buttons():
     pygame.draw.rect(screen, BTN_START, start_button)
     pygame.draw.rect(screen, BTN_PAUSE, pause_button)
@@ -169,7 +154,7 @@ def draw_buttons():
     screen.blit(pause_text, pause_text.get_rect(center=pause_button.center))
     screen.blit(reset_text, reset_text.get_rect(center=reset_button.center))
 
-
+#Speed slider function
 def draw_slider():
     slider_y = slider.y + slider.height // 2
     pygame.draw.line(
@@ -177,13 +162,17 @@ def draw_slider():
         (255, 255, 255),
         (slider.x, slider_y),
         (slider.right, slider_y),
-        5,
-    )
+        5, )
     pygame.draw.circle(screen, (255, 128, 0), (handle_x, slider_y), handle_radius)
     label = font_slider.render(f"Speed: {speed} gen/s", True, (255, 170, 70))
     screen.blit(label, (slider.x, slider.y - 32))
+def update_speed():
+    global speed
+    ratio = (handle_x - slider.x) / slider.width
+    raw_speed = MIN_SPEED + ratio * (MAX_SPEED - MIN_SPEED)
+    speed = max(MIN_SPEED, min(MAX_SPEED, int(round(raw_speed))))
 
-
+#Status display function
 def draw_status():
     if paused:
         state_text = "PAUSE"
@@ -198,82 +187,52 @@ def draw_status():
     surface = font_status.render(status, True, (235, 235, 235))
     screen.blit(surface, (LEFT_PANEL_X, GRID_Y + 270))
 
-
+#Grid drawing function
 def draw_grid():
     gol.draw_grid(screen, gol.grid, ROWS, COLS, CELL_SIZE, GRID_X, GRID_Y)
     background_rect = pygame.Rect(GRID_X, GRID_Y, GRID_SIZE, GRID_SIZE)
     pygame.draw.rect(screen, (245, 245, 245), background_rect, 2)
 
-
+#Update speed based on slider position
 def update_speed():
     global speed
     ratio = (handle_x - slider.x) / slider.width
     raw_speed = MIN_SPEED + ratio * (MAX_SPEED - MIN_SPEED)
     speed = max(MIN_SPEED, min(MAX_SPEED, int(round(raw_speed))))
 
-
+#Move the slider handle to the mouse position while dragging
 def move_handle_to(mouse_x):
     global handle_x
     handle_x = max(slider.x, min(mouse_x, slider.right))
     update_speed()
 
-
+#Clear the grid function
 def clear_grid():
     gol.clear_grid(gol.grid, ROWS, COLS)
-
-
-def place_pattern_center(pattern_coords):
-    global user_mode
-    gol.place_pattern_center(gol.grid, pattern_coords, ROWS, COLS)
-    user_mode = False
-
-
-def random_initialisation():
-    global user_mode
-    gol.clear_grid(gol.grid, ROWS, COLS)
-    gol.randomize_grid(gol.grid, ROWS, COLS)
-    user_mode = False
-
-
-def point_in_grid(pos):
-    x, y = pos
-    return GRID_X <= x < GRID_X + GRID_SIZE and GRID_Y <= y < GRID_Y + GRID_SIZE
-
-
-def toggle_cell_from_mouse(pos):
-    x, y = pos
-    col = (x - GRID_X) // CELL_SIZE
-    row = (y - GRID_Y) // CELL_SIZE
-    gol.toggle_cell(gol.grid, row, col, ROWS, COLS)
-
 
 while True:
     dt = clock.tick(60)
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            save_current_grid_state()
+    for event in pygame.event.get(): 
+        if event.type == pygame.QUIT: #if the user clicks the close button, quit pygame and exit the program
             pygame.quit()
             sys.exit()
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN: #if the user clicks the mouse, check what button is it and respond accordingly
             mouse_pos = event.pos
 
-            if start_button.collidepoint(mouse_pos):
+            if start_button.collidepoint(mouse_pos): #"Play" button, unpause the game and disable user mode
                 paused = False
                 user_mode = False
-            elif pause_button.collidepoint(mouse_pos):
+            elif pause_button.collidepoint(mouse_pos): #"Pause" button, pause the game
                 paused = True
-            elif reset_button.collidepoint(mouse_pos):
+            elif reset_button.collidepoint(mouse_pos): #"Reset" button, clear the grid, pause the game and disable user mode
                 clear_grid()
                 paused = True
                 user_mode = False
-            elif slider.collidepoint(mouse_pos) or math.dist(
-                mouse_pos, (handle_x, slider.y + slider.height // 2)
-            ) <= handle_radius + 4:
+            elif slider.collidepoint(mouse_pos) or math.dist(mouse_pos, (handle_x, slider.y + slider.height // 2)) <= handle_radius + 4:
                 dragging = True
-                move_handle_to(mouse_pos[0])
-            elif point_in_grid(mouse_pos) and (paused or user_mode):
+                move_handle_to(mouse_pos[0]) #Move the slider handle to the mouse position
                 toggle_cell_from_mouse(mouse_pos)
 
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -283,39 +242,42 @@ while True:
             move_handle_to(event.pos[0])
 
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_SPACE: #if the user presses the "Space", toggle between play and pause
                 paused = not paused
                 if not paused:
                     user_mode = False
-            elif event.key == pygame.K_g:
+            elif event.key == pygame.K_g: #if the user presses the "G", grid pause + the Glider pattern
                 place_pattern_center(GLIDER)
                 paused = True
-            elif event.key == pygame.K_b:
+            elif event.key == pygame.K_b: #if the user presses the "B", grid pause + the Blinker pattern
                 place_pattern_center(BLINKER)
                 paused = True
-            elif event.key == pygame.K_p:
+            elif event.key == pygame.K_p: #if the user presses the "P", grid pause + the Pulsar pattern
                 place_pattern_center(PULSAR)
                 paused = True
-            elif event.key == pygame.K_r:
+            elif event.key == pygame.K_r: #if the user presses the "R", grid pause + the R-pentomino pattern 
                 place_pattern_center(R_PENTOMINO)
                 paused = True
-            elif event.key == pygame.K_u:
+            elif event.key == pygame.K_u: #if the user presses the "U", grid pause, cleared + the user can create their own configuration
                 clear_grid()
                 paused = True
                 user_mode = True
-            elif event.key == pygame.K_i:
+            elif event.key == pygame.K_i: #if the user presses the "I", grid pause + randomly initialized
                 random_initialisation()
                 paused = True
 
+#Update the grid to the next generation based on the current speed if the game is not paused
     if paused:
         generation_timer = 0.0
     else:
         generation_timer += dt
-        step_interval = 1000.0 / max(speed, 1)
+        step_interval = 1000 / max(speed, 1)
+        
         while generation_timer >= step_interval:
             gol.grid = gol.next_generation(gol.grid, ROWS, COLS)
             generation_timer -= step_interval
 
+#Show the functions to draw the UI elements and update the display
     screen.fill(BG_UI)
     draw_title()
     draw_multiline_text(TEXT, LEFT_PANEL_X, GRID_Y, font_text)
