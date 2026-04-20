@@ -39,30 +39,11 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game of Life")
 clock = pygame.time.Clock()
 
-class _FreetypeFontAdapter:
-    def __init__(self, font):
-        self._font = font
-
-    def render(self, text, antialias, color):
-        surface, _ = self._font.render(text or "", fgcolor=color)
-        return surface
-
-    def get_height(self):
-        return int(self._font.get_sized_height())
-
-
+#Creates and returns a system font using pygame's font module
 def make_font(name, size):
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
-            return pygame.font.SysFont(name, size)
-    except Exception:
-        from pygame import _freetype
+    return pygame.font.SysFont(name, size)
 
-        _freetype.init()
-        return _FreetypeFontAdapter(_freetype.Font(None, size))
-
-#fonts for different UI elements
+#Fonts for different UI elements
 font_title = make_font("Times New Roman", 40)
 font_button = make_font("Times New Roman", 28)
 font_slider = make_font("Times New Roman", 24)
@@ -138,10 +119,11 @@ paused = True
 user_mode = False
 generation_timer = 0.0
 
+# Saves the current state of the grid (live cells) to persistent storage
 def save_current_grid_state():
     grid_persistence.save_live_cells(gol.grid, ROWS, COLS)
-
-
+ 
+#Load the saved grid state
 grid_persistence.load_live_cells(gol.grid, ROWS, COLS)
 grid_persistence.register_auto_save(save_current_grid_state)
 
@@ -201,8 +183,9 @@ def draw_status():
     if user_mode:
         state_text = "USER"
 
-    live_cells = gol.count_live_cells(gol.grid, ROWS, COLS)
+    live_cells = gol.count_live_cells(gol.grid, ROWS, COLS) #Count live cells in the grid
     status = f"State: {state_text}  |  Live cells: {live_cells}"
+ #Display the status text
     surface = font_status.render(status, True, (235, 235, 235))
     screen.blit(surface, (LEFT_PANEL_X, GRID_Y + 270))
 
@@ -225,18 +208,19 @@ def move_handle_to(mouse_x):
     handle_x = max(slider.x, min(mouse_x, slider.right))
     update_speed()
 
-
+#Toggles a cell state (alive/dead) based on mouse position
 def toggle_cell_from_mouse(mouse_pos):
     if not (paused or user_mode):
         return
-
     mouse_x, mouse_y = mouse_pos
     if not (GRID_X <= mouse_x < GRID_X + GRID_SIZE and GRID_Y <= mouse_y < GRID_Y + GRID_SIZE):
         return
 
+ #Convert mouse position to grid coordinates
     grid_col = (mouse_x - GRID_X) // CELL_SIZE
     grid_row = (mouse_y - GRID_Y) // CELL_SIZE
-    gol.toggle_cell(gol.grid, grid_row, grid_col, ROWS, COLS)
+    gol.toggle_cell(gol.grid, grid_row, grid_col, ROWS, COLS)     #Toggle the selected cell state
+
 
 #Clear the grid function
 def clear_grid():
@@ -271,8 +255,9 @@ while True:
 
         elif event.type == pygame.MOUSEBUTTONUP:
             dragging = False
-
-        elif event.type == pygame.MOUSEMOTION and dragging:
+         
+#While dragging, continuously update slider position
+        elif event.type == pygame.MOUSEMOTION and dragging: 
             move_handle_to(event.pos[0])
 
         elif event.type == pygame.KEYDOWN:
