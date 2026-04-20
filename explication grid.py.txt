@@ -1,0 +1,61 @@
+Bien sûr ! Voici une explication claire de `grid.py`.
+
+---
+
+## C'est quoi `grid.py` ?
+
+C'est le **cerveau du jeu**. Il ne s'occupe pas de l'affichage — il gère uniquement la logique : la grille de cellules et les règles qui font vivre ou mourir chaque cellule.
+
+---
+
+## La grille
+
+Imagine un tableau de 46 lignes × 46 colonnes. Chaque case contient soit `0` (cellule morte) soit `1` (cellule vivante). C'est tout. Rien de plus compliqué que ça.
+
+```
+0 0 0 0 0
+0 1 1 0 0
+0 0 1 0 0   ← exemple d'une petite grille
+0 0 0 0 0
+```
+
+---
+
+## Les règles du Jeu de la Vie
+
+C'est là qu'intervient l'**intelligence** du jeu. Pour chaque cellule, on regarde ses **8 voisins** (haut, bas, gauche, droite, et les 4 diagonales) et on applique ces règles :
+
+| Cellule | Voisins vivants | Résultat |
+|---|---|---|
+| Vivante | < 2 | Meurt (isolement) |
+| Vivante | 2 ou 3 | Survit |
+| Vivante | > 3 | Meurt (surpopulation) |
+| Morte | exactement 3 | Devient vivante (naissance) |
+
+C'est tout. Ces 4 règles toutes simples créent des comportements très complexes — d'où le lien avec l'IA.
+
+---
+
+## Les fonctions une par une
+
+**`count_neighbours(grid, row, col, ...)`** — compte combien de voisins vivants a une cellule. Elle regarde les 8 cases autour avec deux petites boucles (dr et dc allant de -1 à +1).
+
+**`next_generation(grid, ...)`** — c'est la fonction principale. Elle crée une **copie** de la grille, applique les 4 règles à chaque cellule, et retourne la nouvelle grille. La copie est importante : si on modifiait la grille en direct, les cellules déjà mises à jour influenceraient celles qui ne l'ont pas encore été.
+
+**`randomize_grid(grid, ...)`** — remplit la grille aléatoirement. Chaque cellule a 30% de chance d'être vivante (quand tu appuies sur `I` dans le jeu).
+
+**`clear_grid(grid, ...)`** — remet tout à 0.
+
+**`toggle_cell(grid, row, col, ...)`** — inverse l'état d'une cellule (0→1 ou 1→0). C'est ce qui se passe quand tu cliques sur une cellule avec la souris.
+
+**`place_pattern_center(grid, pattern_coords, ...)`** — place un pattern prédéfini (Glider, Pulsar…) au centre de la grille.
+
+**`draw_grid(screen, ...)`** — la seule fonction visuelle du fichier. Elle dessine chaque cellule : noire si vivante, blanche si morte.
+
+---
+
+## Le lien avec l'IA
+
+Le Jeu de la Vie n'utilise pas d'IA à proprement parler — mais il est **souvent cité en IA et en informatique** parce qu'il montre comment des règles ultra-simples peuvent faire émerger des comportements complexes et imprévisibles. C'est un exemple classique de ce qu'on appelle les **systèmes émergents**, un concept fondamental en IA.
+
+Pour ta présentation, tu peux dire : *"grid.py implémente l'automate cellulaire de Conway — 4 règles locales qui génèrent une complexité globale imprévisible."*
