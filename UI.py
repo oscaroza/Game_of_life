@@ -1,5 +1,6 @@
 import math
 import sys
+import warnings
 
 import pygame
 
@@ -38,8 +39,28 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game of Life")
 clock = pygame.time.Clock()
 
+class _FreetypeFontAdapter:
+    def __init__(self, font):
+        self._font = font
+
+    def render(self, text, antialias, color):
+        surface, _ = self._font.render(text or "", fgcolor=color)
+        return surface
+
+    def get_height(self):
+        return int(self._font.get_sized_height())
+
+
 def make_font(name, size):
-    return pygame.font.SysFont(name, size)
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            return pygame.font.SysFont(name, size)
+    except Exception:
+        from pygame import _freetype
+
+        _freetype.init()
+        return _FreetypeFontAdapter(_freetype.Font(None, size))
 
 #fonts for different UI elements
 font_title = make_font("Times New Roman", 40)
@@ -117,10 +138,12 @@ paused = True
 user_mode = False
 generation_timer = 0.0
 
-def save current grid_state():
-grid_persistence. save_live_cells (gol.grid, ROWS, COLS)
-grid_persistence. load_live_cells(gol.grid, ROWS,COLS)
-grid_persistence. register_auto_save(save_current_grid_state)
+def save_current_grid_state():
+    grid_persistence.save_live_cells(gol.grid, ROWS, COLS)
+
+
+grid_persistence.load_live_cells(gol.grid, ROWS, COLS)
+grid_persistence.register_auto_save(save_current_grid_state)
 
 
 #Functions to draw UI elements and handle interactions
@@ -129,10 +152,6 @@ def draw_multiline_text(text, x, y, font, color=PANEL_TEXT, line_spacing=4):
     for index, line in enumerate(lines):
         surface = font.render(line, True, color)
         screen.blit(surface, (x, y + index * (font.get_height() + line_spacing)))
-    for event in pygame.event.get ():
-        if event. type == pygame. QUIT:
-        save_current_grid_state()
-        pygame.quit()
 
 #Title bar function
 def draw_title():
@@ -206,6 +225,19 @@ def move_handle_to(mouse_x):
     handle_x = max(slider.x, min(mouse_x, slider.right))
     update_speed()
 
+
+def toggle_cell_from_mouse(mouse_pos):
+    if not (paused or user_mode):
+        return
+
+    mouse_x, mouse_y = mouse_pos
+    if not (GRID_X <= mouse_x < GRID_X + GRID_SIZE and GRID_Y <= mouse_y < GRID_Y + GRID_SIZE):
+        return
+
+    grid_col = (mouse_x - GRID_X) // CELL_SIZE
+    grid_row = (mouse_y - GRID_Y) // CELL_SIZE
+    gol.toggle_cell(gol.grid, grid_row, grid_col, ROWS, COLS)
+
 #Clear the grid function
 def clear_grid():
     gol.clear_grid(gol.grid, ROWS, COLS)
@@ -215,6 +247,7 @@ while True:
 
     for event in pygame.event.get(): 
         if event.type == pygame.QUIT: #if the user clicks the close button, quit pygame and exit the program
+            save_current_grid_state()
             pygame.quit()
             sys.exit()
 
@@ -233,6 +266,7 @@ while True:
             elif slider.collidepoint(mouse_pos) or math.dist(mouse_pos, (handle_x, slider.y + slider.height // 2)) <= handle_radius + 4:
                 dragging = True
                 move_handle_to(mouse_pos[0]) #Move the slider handle to the mouse position
+            else:
                 toggle_cell_from_mouse(mouse_pos)
 
         elif event.type == pygame.MOUSEBUTTONUP:
