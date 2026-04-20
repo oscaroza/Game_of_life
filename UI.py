@@ -39,9 +39,31 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game of Life")
 clock = pygame.time.Clock()
 
+class _FreetypeFontAdapter:
+    """Compatibility wrapper so freetype fonts behave like pygame.font fonts."""
+
+    def __init__(self, freetype_font):
+        self._font = freetype_font
+
+    def render(self, text, antialias, color):
+        surface, _ = self._font.render(text or "", fgcolor=color)
+        return surface
+
+    def get_height(self):
+        return int(self._font.get_sized_height())
+
+
 #Creates and returns a system font using pygame's font module
 def make_font(name, size):
-    return pygame.font.SysFont(name, size)
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            return pygame.font.SysFont(name, size)
+    except Exception:
+        from pygame import _freetype
+
+        _freetype.init()
+        return _FreetypeFontAdapter(_freetype.Font(None, size))
 
 #Fonts for different UI elements
 font_title = make_font("Times New Roman", 40)
