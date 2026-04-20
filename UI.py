@@ -5,6 +5,7 @@ import warnings
 import pygame
 
 import grid as gol
+import grid_persistence
 
 pygame.init()
 
@@ -134,6 +135,14 @@ user_mode = False
 generation_timer = 0.0
 
 
+def save_current_grid_state():
+    grid_persistence.save_live_cells(gol.grid, ROWS, COLS)
+
+
+grid_persistence.load_live_cells(gol.grid, ROWS, COLS)
+grid_persistence.register_auto_save(save_current_grid_state)
+
+
 def draw_multiline_text(text, x, y, font, color=PANEL_TEXT, line_spacing=4):
     lines = text.split("\n")
     for index, line in enumerate(lines):
@@ -243,6 +252,7 @@ while True:
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            save_current_grid_state()
             pygame.quit()
             sys.exit()
 
