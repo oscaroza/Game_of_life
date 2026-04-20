@@ -2,9 +2,12 @@ import random
 import pygame
 
 # Grid settings
+# ROWS/COLS: number of cells in the simulation grid
 ROWS = 46
 COLS = 46
+# CELL_SIZE: size of one cell in pixels
 CELL_SIZE = 11
+# WINDOW_SIZE: pixel size of the square grid area
 WINDOW_SIZE = COLS * CELL_SIZE
 FPS = 15  # default simulation speed, used by UI
 
@@ -38,13 +41,19 @@ def reset_module_grid():
 
 def count_neighbours(grid, row, col, num_rows, num_cols):
     """Count live neighbours around one cell, excluding the cell itself."""
+    # row/col: current cell position in the grid
     neighbours = 0
+    # dr/dc = delta row / delta col (offset around the current cell)
+    # values -1, 0, 1 let us visit the 8 surrounding positions
     for dr in [-1, 0, 1]:
         for dc in [-1, 0, 1]:
+            # dr=0 and dc=0 means "the current cell itself", so skip it
             if dr == 0 and dc == 0:
                 continue
+            # r/c: neighbour coordinates after applying offset
             r = row + dr
             c = col + dc
+            # Check bounds to avoid index errors on edges
             if 0 <= r < num_rows and 0 <= c < num_cols:
                 if grid[r][c] == 1:
                     neighbours = neighbours + 1
@@ -55,6 +64,7 @@ def next_generation(grid, num_rows, num_cols):
     """Compute and return the next Game of Life generation."""
     # We work on a copy so all cells update at the same time
     new_grid = make_empty_grid(num_rows, num_cols)
+    # Start from a copy of current state, then apply life/death rules
     for row in range(num_rows):
         for col in range(num_cols):
             new_grid[row][col] = grid[row][col]
@@ -79,6 +89,7 @@ def randomize_grid(grid, num_rows, num_cols):
     """Fill the grid randomly with live (1) and dead (0) cells."""
     for row in range(num_rows):
         for col in range(num_cols):
+            # ~30% chance a cell starts alive
             if random.random() < 0.3:
                 grid[row][col] = 1
             else:
@@ -115,10 +126,12 @@ def place_pattern_center(grid, pattern_coords, num_rows, num_cols):
             max_col = col
 
     # Calculate where to start so the pattern is centered
+    # start_row/start_col: top-left anchor where pattern will be placed
     start_row = (num_rows - max_row - 1) // 2
     start_col = (num_cols - max_col - 1) // 2
 
     for row, col in pattern_coords:
+        # target_row/target_col: absolute position in main grid
         target_row = start_row + row
         target_col = start_col + col
         if 0 <= target_row < num_rows and 0 <= target_col < num_cols:
@@ -137,6 +150,7 @@ def count_live_cells(grid, num_rows, num_cols):
 
 def draw_grid(screen, game_grid, num_rows, num_cols, cell_size, offset_x=0, offset_y=0):
     """Draw the current grid on screen with cell colors and grid lines."""
+    # offset_x/offset_y place the whole grid inside the window layout
     background_rect = pygame.Rect(offset_x, offset_y, num_cols * cell_size, num_rows * cell_size)
     pygame.draw.rect(screen, BG_COLOR, background_rect)
 
@@ -146,6 +160,7 @@ def draw_grid(screen, game_grid, num_rows, num_cols, cell_size, offset_x=0, offs
                 color = BLACK
             else:
                 color = WHITE
+            # Convert grid coordinates (row/col) to pixel coordinates (x/y)
             x = offset_x + col * cell_size
             y = offset_y + row * cell_size
             rect = pygame.Rect(x, y, cell_size, cell_size)
