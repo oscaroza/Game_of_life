@@ -1,11 +1,7 @@
 import math
 import sys
-import warnings
-
 import pygame
-
 import grid as gol
-
 import grid_persistence
 
 pygame.init()
@@ -39,31 +35,9 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game of Life")
 clock = pygame.time.Clock()
 
-class _FreetypeFontAdapter:
-    """Compatibility wrapper so freetype fonts behave like pygame.font fonts."""
-
-    def __init__(self, freetype_font):
-        self._font = freetype_font
-
-    def render(self, text, antialias, color):
-        surface, _ = self._font.render(text or "", fgcolor=color)
-        return surface
-
-    def get_height(self):
-        return int(self._font.get_sized_height())
-
-
 #Creates and returns a system font using pygame's font module
 def make_font(name, size):
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", RuntimeWarning)
-            return pygame.font.SysFont(name, size)
-    except Exception:
-        from pygame import _freetype
-
-        _freetype.init()
-        return _FreetypeFontAdapter(_freetype.Font(None, size))
+    return pygame.font.SysFont(name, size)
 
 #Fonts for different UI elements
 font_title = make_font("Times New Roman", 40)
@@ -119,8 +93,7 @@ PULSAR = [
     (9, 0), (9, 5), (9, 7), (9, 12),
     (10, 0), (10, 5), (10, 7), (10, 12),
     (11, 0), (11, 5), (11, 7), (11, 12),
-    (12, 2), (12, 3), (12, 4), (12, 8), (12, 9), (12, 10),
-]
+    (12, 2), (12, 3), (12, 4), (12, 8), (12, 9), (12, 10),]
 
 #Place predefined patterns in the center of the grid
 def place_pattern_center(pattern_coords):
@@ -151,7 +124,7 @@ grid_persistence.register_auto_save(save_current_grid_state)
 
 
 #Functions to draw UI elements and handle interactions
-def draw_multiline_text(text, x, y, font, color=PANEL_TEXT, line_spacing=4):
+def draw_text(text, x, y, font, color=PANEL_TEXT, line_spacing=4):
     lines = text.split("\n")
     for index, line in enumerate(lines):
         surface = font.render(line, True, color)
@@ -189,11 +162,6 @@ def draw_slider():
     pygame.draw.circle(screen, (255, 128, 0), (handle_x, slider_y), handle_radius)
     label = font_slider.render(f"Speed: {speed} gen/s", True, (255, 170, 70))
     screen.blit(label, (slider.x, slider.y - 32))
-def update_speed():
-    global speed
-    ratio = (handle_x - slider.x) / slider.width
-    raw_speed = MIN_SPEED + ratio * (MAX_SPEED - MIN_SPEED)
-    speed = max(MIN_SPEED, min(MAX_SPEED, int(round(raw_speed))))
 
 #Status display function
 def draw_status():
@@ -225,9 +193,9 @@ def update_speed():
     speed = max(MIN_SPEED, min(MAX_SPEED, int(round(raw_speed))))
 
 #Move the slider handle to the mouse position while dragging
-def move_handle_to(mouse_x):
+def move_slider(x):
     global handle_x
-    handle_x = max(slider.x, min(mouse_x, slider.right))
+    handle_x = max(slider.x, min(slider.right, x))
     update_speed()
 
 #Toggles a cell state (alive/dead) based on mouse position
@@ -269,9 +237,9 @@ while True:
                 clear_grid()
                 paused = True
                 user_mode = False
-            elif slider.collidepoint(mouse_pos) or math.dist(mouse_pos, (handle_x, slider.y + slider.height // 2)) <= handle_radius + 4:
+            elif slider.collidepoint(event.pos):
                 dragging = True
-                move_handle_to(mouse_pos[0]) #Move the slider handle to the mouse position
+                move_slider(mouse_pos[0]) #Move the slider handle to the mouse position
             else:
                 toggle_cell_from_mouse(mouse_pos)
 
@@ -280,7 +248,7 @@ while True:
          
 #While dragging, continuously update slider position
         elif event.type == pygame.MOUSEMOTION and dragging: 
-            move_handle_to(event.pos[0])
+            move_slider(event.pos[0])
 
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE: #if the user presses the "Space", toggle between play and pause
@@ -314,14 +282,14 @@ while True:
         generation_timer += dt
         step_interval = 1000 / max(speed, 1)
         
-        while generation_timer >= step_interval:
+        if generation_timer >= step_interval:
             gol.grid = gol.next_generation(gol.grid, ROWS, COLS)
             generation_timer -= step_interval
 
 #Show the functions to draw the UI elements and update the display
     screen.fill(BG_UI)
     draw_title()
-    draw_multiline_text(TEXT, LEFT_PANEL_X, GRID_Y, font_text)
+    draw_text(TEXT, LEFT_PANEL_X, GRID_Y, font_text)
     draw_status()
     draw_slider()
     draw_buttons()
